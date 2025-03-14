@@ -1,175 +1,149 @@
-{% extends "base.html" %}
+import os
+import datetime
+import json
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+import config
 
-{% block title %}Dashboard - Asana-Calendar Sync{% endblock %}
+# If modifying these scopes, delete the token file.
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-{% block content %}
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Asana-Calendar Synchronizer</h5>
-                <div id="sync-status" class="text-muted small">
-                    <i class="bi bi-info-circle"></i> Ready to sync
-                </div>
-            </div>
-            <div class="card-body">
-                <p class="card-text">
-                    This dashboard allows you to manually trigger the synchronization between 
-                    Asana tasks with the <span class="badge bg-info">schedule</span> tag and Google Calendar.
-                </p>
-                <div class="alert alert-info">
-                    <i class="bi bi-lightbulb"></i> <strong>How it works:</strong> 
-                    When you click the sync button, the system will look for Asana tasks that have both:
-                    <ul>
-                        <li>A due date assigned</li>
-                        <li>The <span class="badge bg-info">schedule</span> tag</li>
-                    </ul>
-                    For each matching task, it will create a calendar event at the due date time.
-                </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
-                    <button id="sync-button" class="btn btn-primary btn-lg">
-                        <i class="bi bi-arrow-repeat"></i> Sync Tasks to Calendar
-                    </button>
-                </div>
-                
-                <div id="sync-results" class="mt-4" style="display: none;">
-                    <div class="card border-0 bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title">Sync Results</h6>
-                            <div class="row text-center">
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="tasks-found">0</h3>
-                                        <p class="mb-0 text-muted">Tasks Found</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="events-created">0</h3>
-                                        <p class="mb-0 text-muted">Events Created</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="already-synced">0</h3>
-                                        <p class="mb-0 text-muted">Already Synced</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="errors">0</h3>
-                                        <p class
-{% extends "base.html" %}
-
-{% block title %}Dashboard - Asana-Calendar Sync{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Asana-Calendar Synchronizer</h5>
-                <div id="sync-status" class="text-muted small">
-                    <i class="bi bi-info-circle"></i> Ready to sync
-                </div>
-            </div>
-            <div class="card-body">
-                <p class="card-text">
-                    This dashboard allows you to manually trigger the synchronization between 
-                    Asana tasks with the <span class="badge bg-info">schedule</span> tag and Google Calendar.
-                </p>
-                <div class="alert alert-info">
-                    <i class="bi bi-lightbulb"></i> <strong>How it works:</strong> 
-                    When you click the sync button, the system will look for Asana tasks that have both:
-                    <ul>
-                        <li>A due date assigned</li>
-                        <li>The <span class="badge bg-info">schedule</span> tag</li>
-                    </ul>
-                    For each matching task, it will create a calendar event at the due date time.
-                </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
-                    <button id="sync-button" class="btn btn-primary btn-lg">
-                        <i class="bi bi-arrow-repeat"></i> Sync Tasks to Calendar
-                    </button>
-                </div>
-                
-                <div id="sync-results" class="mt-4" style="display: none;">
-                    <div class="card border-0 bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title">Sync Results</h6>
-                            <div class="row text-center">
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="tasks-found">0</h3>
-                                        <p class="mb-0 text-muted">Tasks Found</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="events-created">0</h3>
-                                        <p class="mb-0 text-muted">Events Created</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="already-synced">0</h3>
-                                        <p class="mb-0 text-muted">Already Synced</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-3">
-                                        <h3 id="errors">0</h3>
-                                        <p class="mb-0 text-muted">Errors</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <p id="last-sync-time" class="text-center text-muted mt-3 small">
-                                Last synced: Never
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+class GoogleCalendarClient:
+    """Client for interacting with Google Calendar API"""
     
-    <div class="col-lg-4">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Sync History</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush" id="synced-tasks-list">
-                    {% if synced_tasks %}
-                        {% for task in synced_tasks %}
-                        <div class="list-group-item">
-                            <h6 class="mb-1">{{ task.asana_task_name }}</h6>
-                            <p class="mb-1 small text-muted">
-                                Due: {{ task.asana_due_date.strftime('%Y-%m-%d %H:%M') }}
-                            </p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-success">Synced</span>
-                                <small class="text-muted">
-                                    {{ task.created_at.strftime('%Y-%m-%d') }}
-                                </small>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="list-group-item text-center py-4">
-                            <i class="bi bi-calendar-x text-muted" style="font-size: 2rem;"></i>
-                            <p class="mt-2 mb-0 text-muted">No synced tasks yet</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-{% endblock %}
+    def __init__(self, credentials_file=None, token_file=None, calendar_id=None):
+        """Initialize with optional custom file paths"""
+        self.credentials_file = credentials_file or config.GOOGLE_CREDENTIALS_FILE
+        self.token_file = token_file or config.GOOGLE_TOKEN_FILE
+        self.calendar_id = calendar_id or config.GOOGLE_CALENDAR_ID
+        self.service = self._get_calendar_service()
+    
+    def _get_calendar_service(self):
+        """Authenticate and build the Google Calendar service"""
+        creds = None
+        
+        # Check if credentials are in environment variable
+        google_creds_env = os.environ.get('GOOGLE_CREDENTIALS')
+        if google_creds_env:
+            # Parse the JSON string from environment variable
+            client_config = json.loads(google_creds_env)
+            
+            # Try to load existing token
+            if os.path.exists(self.token_file):
+                try:
+                    creds = Credentials.from_authorized_user_info(
+                        eval(open(self.token_file, 'r').read()), 
+                        SCOPES
+                    )
+                except Exception as e:
+                    print(f"Error loading token: {str(e)}")
+        else:
+            # Try to load existing token
+            if os.path.exists(self.token_file):
+                try:
+                    creds = Credentials.from_authorized_user_info(
+                        eval(open(self.token_file, 'r').read()), 
+                        SCOPES
+                    )
+                except Exception as e:
+                    print(f"Error loading token: {str(e)}")
+            
+        # If no valid credentials available, let the user log in
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if google_creds_env:
+                    flow = InstalledAppFlow.from_client_config(
+                        client_config, SCOPES)
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        self.credentials_file, SCOPES)
+                creds = flow.run_local_server(port=0)
+            
+            # Save the credentials for the next run
+            with open(self.token_file, 'w') as token:
+                token.write(str(creds.to_json()))
+        
+        # Build and return the service
+        return build('calendar', 'v3', credentials=creds)
+    
+    def create_event(self, summary, description, start_time, has_time=True, end_time=None):
+        """
+        Create a Google Calendar event
+        
+        Args:
+            summary: Event title
+            description: Event description
+            start_time: Start datetime
+            has_time: Whether the event has a specific time or is all-day
+            end_time: Optional end time (defaults to 1 hour after start for timed events,
+                      or same day for all-day events)
+        
+        Returns:
+            The created event object
+        """
+        event = {
+            'summary': summary,
+            'description': description,
+        }
+        
+        # Set default end time if not provided
+        if not end_time:
+            if has_time:
+                # Default to 1 hour meeting
+                end_time = start_time + datetime.timedelta(hours=1)
+            else:
+                # All-day event on the same day
+                end_time = start_time
+        
+        # Format event time based on whether it has a specific time or is all-day
+        if has_time:
+            event['start'] = {'dateTime': start_time.isoformat()}
+            event['end'] = {'dateTime': end_time.isoformat()}
+        else:
+            # Convert to just the date string for all-day events
+            date_str = start_time.date().isoformat()
+            end_date_str = (end_time.date() + datetime.timedelta(days=1)).isoformat()  # End date is exclusive
+            event['start'] = {'date': date_str}
+            event['end'] = {'date': end_date_str}
+        
+        try:
+            created_event = self.service.events().insert(
+                calendarId=self.calendar_id,
+                body=event
+            ).execute()
+            
+            return created_event
+            
+        except Exception as e:
+            print(f"Error creating calendar event: {str(e)}")
+            return None
+    
+    def delete_event(self, event_id):
+        """Delete a Google Calendar event by ID"""
+        try:
+            self.service.events().delete(
+                calendarId=self.calendar_id,
+                eventId=event_id
+            ).execute()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error deleting calendar event: {str(e)}")
+            return False
+    
+    def get_event(self, event_id):
+        """Get a Google Calendar event by ID"""
+        try:
+            return self.service.events().get(
+                calendarId=self.calendar_id,
+                eventId=event_id
+            ).execute()
+            
+        except Exception as e:
+            print(f"Error getting calendar event: {str(e)}")
+            return None
