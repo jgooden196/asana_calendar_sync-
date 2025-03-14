@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Asana-Calendar Sync{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Asana-Calendar Synchronizer</h5>
+                <div id="sync-status" class="text-muted small">
+                    <i class="bi bi-info-circle"></i> Ready to sync
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    This dashboard allows you to manually trigger the synchronization between 
+                    Asana tasks with the <span class="badge bg-info">schedule</span> tag and Google Calendar.
+                </p>
+                <div class="alert alert-info">
+                    <i class="bi bi-lightbulb"></i> <strong>How it works:</strong> 
+                    When you click the sync button, the system will look for Asana tasks that have both:
+                    <ul>
+                        <li>A due date assigned</li>
+                        <li>The <span class="badge bg-info">schedule</span> tag</li>
+                    </ul>
+                    For each matching task, it will create a calendar event at the due date time.
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                    <button id="sync-button" class="btn btn-primary btn-lg">
+                        <i class="bi bi-arrow-repeat"></i> Sync Tasks to Calendar
+                    </button>
+                </div>
+                
+                <div id="sync-results" class="mt-4" style="display: none;">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Sync Results</h6>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="tasks-found">0</h3>
+                                        <p class="mb-0 text-muted">Tasks Found</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="events-created">0</h3>
+                                        <p class="mb-0 text-muted">Events Created</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="already-synced">0</h3>
+                                        <p class="mb-0 text-muted">Already Synced</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="errors">0</h3>
+                                        <p class
