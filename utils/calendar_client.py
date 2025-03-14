@@ -1,5 +1,6 @@
 import os
 import datetime
+import json
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -19,40 +20,55 @@ class GoogleCalendarClient:
         self.calendar_id = calendar_id or config.GOOGLE_CALENDAR_ID
         self.service = self._get_calendar_service()
     
-  def _get_calendar_service(self):
-    """Authenticate and build the Google Calendar service"""
-    creds = None
-    
-    # If credentials are provided as an environment variable
-    google_creds_env = os.environ.get('GOOGLE_CREDENTIALS')
-    if google_creds_env:
-        # Parse the JSON string from environment variable
-        import json
-        creds_data = json.loads(google_creds_env)
-        client_config = creds_data
+    def _get_calendar_service(self):
+        """Authenticate and build the Google Calendar service"""
+        creds = None
         
-        # Try to load existing token
-        if os.path.exists(self.token_file):
-            creds = Credentials.from_authorized_user_info(
-                eval(open(self.token_file, 'r').read()), 
-                SCOPES
-            )
-    
-    # If no valid credentials available, let the user log in
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+        # Check if credentials are in environment variable
+        google_creds_env = os.environ.get('GOOGLE_CREDENTIALS')
+        if google_creds_env:
+            # Parse the JSON string from environment variable
+            client_config = json.loads(google_creds_env)
+            
+            # Try to load existing token
+            if os.path.exists(self.token_file):
+                try:
+                    creds = Credentials.from_authorized_user_info(
+                        eval(open(self.token_file, 'r').read()), 
+                        SCOPES
+                    )
+                except Exception as e:
+                    print(f"Error loading token: {str(e)}")
         else:
-            flow = InstalledAppFlow.from_client_config(
-                client_config, SCOPES)
-            creds = flow.run_local_server(port=0)
+            # Try to load existing token
+            if os.path.exists(self.token_file):
+                try:
+                    creds = Credentials.from_authorized_user_info(
+                        eval(open(self.token_file, 'r').read()), 
+                        SCOPES
+                    )
+                except Exception as e:
+                    print(f"Error loading token: {str(e)}")
+            
+        # If no valid credentials available, let the user log in
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if google_creds_env:
+                    flow = InstalledAppFlow.from_client_config(
+                        client_config, SCOPES)
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        self.credentials_file, SCOPES)
+                creds = flow.run_local_server(port=0)
+            
+            # Save the credentials for the next run
+            with open(self.token_file, 'w') as token:
+                token.write(str(creds.to_json()))
         
-        # Save the credentials for the next run
-        with open(self.token_file, 'w') as token:
-            token.write(str(creds.to_json()))
-    
-    # Build and return the service
-    return build('calendar', 'v3', credentials=creds)
+        # Build and return the service
+        return build('calendar', 'v3', credentials=creds)
     
     def create_event(self, summary, description, start_time, has_time=True, end_time=None):
         """
