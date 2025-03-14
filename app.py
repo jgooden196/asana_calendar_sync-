@@ -9,7 +9,9 @@ from utils.sync import TaskSynchronizer
 from utils.asana_client import AsanaClient
 from utils.calendar_client import GoogleCalendarClient
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='templates',  # Path to your templates
+            static_folder='static')       # Path to your static files
 app.config.from_object(config)
 
 # Initialize database
@@ -18,8 +20,11 @@ init_db(app)
 @app.route('/')
 def index():
     """Render the dashboard page"""
-    synced_tasks = get_all_synced_tasks()
-    return render_template('dashboard.html', synced_tasks=synced_tasks)
+    try:
+        synced_tasks = get_all_synced_tasks()
+        return render_template('dashboard.html', synced_tasks=synced_tasks)
+    except Exception as e:
+        return f"Error loading dashboard: {str(e)}", 500
 
 @app.route('/api/sync', methods=['POST'])
 def sync_tasks():
