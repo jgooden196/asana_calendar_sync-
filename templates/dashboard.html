@@ -60,3 +60,116 @@
                                     <div class="p-3">
                                         <h3 id="errors">0</h3>
                                         <p class
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Asana-Calendar Sync{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Asana-Calendar Synchronizer</h5>
+                <div id="sync-status" class="text-muted small">
+                    <i class="bi bi-info-circle"></i> Ready to sync
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    This dashboard allows you to manually trigger the synchronization between 
+                    Asana tasks with the <span class="badge bg-info">schedule</span> tag and Google Calendar.
+                </p>
+                <div class="alert alert-info">
+                    <i class="bi bi-lightbulb"></i> <strong>How it works:</strong> 
+                    When you click the sync button, the system will look for Asana tasks that have both:
+                    <ul>
+                        <li>A due date assigned</li>
+                        <li>The <span class="badge bg-info">schedule</span> tag</li>
+                    </ul>
+                    For each matching task, it will create a calendar event at the due date time.
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                    <button id="sync-button" class="btn btn-primary btn-lg">
+                        <i class="bi bi-arrow-repeat"></i> Sync Tasks to Calendar
+                    </button>
+                </div>
+                
+                <div id="sync-results" class="mt-4" style="display: none;">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Sync Results</h6>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="tasks-found">0</h3>
+                                        <p class="mb-0 text-muted">Tasks Found</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="events-created">0</h3>
+                                        <p class="mb-0 text-muted">Events Created</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="already-synced">0</h3>
+                                        <p class="mb-0 text-muted">Already Synced</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3">
+                                        <h3 id="errors">0</h3>
+                                        <p class="mb-0 text-muted">Errors</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p id="last-sync-time" class="text-center text-muted mt-3 small">
+                                Last synced: Never
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Sync History</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="synced-tasks-list">
+                    {% if synced_tasks %}
+                        {% for task in synced_tasks %}
+                        <div class="list-group-item">
+                            <h6 class="mb-1">{{ task.asana_task_name }}</h6>
+                            <p class="mb-1 small text-muted">
+                                Due: {{ task.asana_due_date.strftime('%Y-%m-%d %H:%M') }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success">Synced</span>
+                                <small class="text-muted">
+                                    {{ task.created_at.strftime('%Y-%m-%d') }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="list-group-item text-center py-4">
+                            <i class="bi bi-calendar-x text-muted" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0 text-muted">No synced tasks yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
